@@ -46,7 +46,6 @@ export async function POST(request: Request) {
       description,
       price,
       imageUrl: thumbnailUrl,
-      videoUrl,
       authorId: session.user.id,
     });
 

@@ -1,14 +1,16 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import { users, courses, lessons, enrollments } from './schema';
+import { users, courses, lessons, enrollments, subscriptions } from './schema';
 import { eq, and } from 'drizzle-orm';
 import { hash } from 'bcryptjs';
 import { createId } from '@paralleldrive/cuid2';
 import type { Course, Lesson, Subscription, User } from './types';
 
 // Initialize Neon client
-const sql = neon(process.env.DATABASE_URL!);
+const sql = neon<boolean, boolean>(process.env.DATABASE_URL!);
 const db = drizzle(sql);
+
+export { db, sql };
 
 // Database client functions
 export const dbClient = {
@@ -16,7 +18,7 @@ export const dbClient = {
   async createUser(email: string, password: string, name?: string) {
     const hashedPassword = await hash(password, 12);
     const [user] = await db.insert(users)
-      .values({ email, password: hashedPassword, name })
+      .values({ email, hashedPassword, name })
       .returning();
     return user;
   },
@@ -106,11 +108,15 @@ export const dbClient = {
   async createSubscription(data: {
     userId: string;
     status: string;
+    startDate: Date;
     endDate: Date;
+    priceId: string;
+    price: string;
   }): Promise<Subscription[]> {
     return db.insert(subscriptions).values({
-      id: createId(),
       ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }).returning();
   },
 

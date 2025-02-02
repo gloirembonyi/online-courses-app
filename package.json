@@ -14,6 +14,7 @@
     "create:admin": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
+    "@auth/core": "^0.37.4",
     "@auth/prisma-adapter": "^2.7.4",
     "@clerk/nextjs": "^6.10.6",
     "@neondatabase/serverless": "^0.10.4",
@@ -29,7 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.474.0",
     "next": "14.1.0",
-    "next-auth": "^4.24.11",
+    "next-auth": "^4.24.5",
     "pg": "^8.11.3",
     "react": "^18",
     "react-dom": "^18",
@@ -47,7 +48,7 @@
     "autoprefixer": "^10.4.20",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.20.18",
-    "postcss": "^8.4.31",
+    "postcss": "^8.5.1",
     "prisma": "^6.3.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",

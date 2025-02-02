@@ -21,7 +21,7 @@ export async function GET() {
     const newAdmin = await db.insert(users).values({
       email: "admin@example.com",
       name: "Admin User",
-      password: hashedPassword,
+      hashedPassword,
       isAdmin: true,
     }).returning();
 

@@ -68,7 +68,22 @@ export const verificationTokens = pgTable("verification_tokens", {
   used: boolean("used").default(false).notNull(),
 });
 
+export const subscriptions = pgTable("subscriptions", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  status: text("status").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  priceId: text("price_id").notNull(),
+  price: decimal("price").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
-export type Enrollment = typeof enrollments.$inferSelect; 
+export type Enrollment = typeof enrollments.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect; 

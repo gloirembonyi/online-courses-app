@@ -2,101 +2,130 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { users, verificationTokens } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "./email";
 import { add } from "date-fns";
+import NextAuth from "next-auth";
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-        verificationCode: { label: "Verification Code", type: "text" }
-      },
-      async authorize(credentials) {
-        console.log("Attempting to authorize with credentials:", credentials?.email);
-        
+const providers = [
+  CredentialsProvider({
+    name: "credentials",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+      verificationCode: { label: "Verification Code", type: "text" }
+    },
+    async authorize(credentials) {
+      try {
+        // Step 1: Validate basic credentials
         if (!credentials?.email || !credentials?.password) {
-          console.log("Missing email or password");
-          return null;
+          throw new Error("INVALID_CREDENTIALS");
         }
 
-        try {
-          const [user] = await db.select().from(users).where(eq(users.email, credentials.email));
-          console.log("Found user:", user ? "yes" : "no");
-          
-          if (!user || !user.hashedPassword) {
-            console.log("No user found or missing password");
-            return null;
-          }
+        // Step 2: Find user
+        const [user] = await db.select().from(users).where(eq(users.email, credentials.email));
+        if (!user || !user.hashedPassword) {
+          throw new Error("INVALID_CREDENTIALS");
+        }
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.hashedPassword);
-          console.log("Password valid:", isPasswordValid);
+        // Step 3: Validate password
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.hashedPassword);
+        if (!isPasswordValid) {
+          throw new Error("INVALID_CREDENTIALS");
+        }
 
-          if (!isPasswordValid) {
-            return null;
-          }
-
-          // If MFA is enabled and no verification code provided, generate and send a new one
-          if (user.mfaEnabled && !credentials.verificationCode) {
+        // Step 4: Handle MFA
+        if (user.mfaEnabled) {
+          // If this is the initial login attempt (no verification code provided)
+          if (!credentials.verificationCode || credentials.verificationCode === "undefined") {
             const token = Math.floor(100000 + Math.random() * 900000).toString();
             const expiresAt = add(new Date(), { minutes: 10 });
 
+            // Invalidate old tokens
+            await db
+              .update(verificationTokens)
+              .set({ used: true })
+              .where(
+                and(
+                  eq(verificationTokens.userId, user.id),
+                  eq(verificationTokens.used, false)
+                )
+              );
+
+            // Create new token
             await db.insert(verificationTokens).values({
               userId: user.id,
               token,
               expiresAt,
             });
 
+            console.log("Sending verification email to:", user.email);
             await sendVerificationEmail(user.email, token);
-
-            // Return null with a special error to indicate MFA is required
             throw new Error("MFA_REQUIRED");
           }
 
-          // If verification code is provided, validate it
-          if (credentials.verificationCode) {
-            const [verificationToken] = await db
-              .select()
-              .from(verificationTokens)
-              .where(eq(verificationTokens.userId, user.id))
-              .where(eq(verificationTokens.token, credentials.verificationCode))
-              .where(eq(verificationTokens.used, false));
+          console.log("Verifying code:", credentials.verificationCode, "for user:", user.email);
 
-            if (!verificationToken || verificationToken.expiresAt < new Date()) {
-              throw new Error("INVALID_CODE");
-            }
+          // Verify the code
+          const [verificationToken] = await db
+            .select()
+            .from(verificationTokens)
+            .where(
+              and(
+                eq(verificationTokens.userId, user.id),
+                eq(verificationTokens.token, credentials.verificationCode),
+                eq(verificationTokens.used, false)
+              )
+            )
+            .orderBy(desc(verificationTokens.createdAt))
+            .limit(1);
 
-            // Mark the token as used
-            await db
-              .update(verificationTokens)
-              .set({ used: true })
-              .where(eq(verificationTokens.id, verificationToken.id));
+          console.log("Found verification token:", verificationToken);
+
+          if (!verificationToken) {
+            console.log("No valid verification token found");
+            throw new Error("INVALID_CODE");
           }
 
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            isAdmin: user.isAdmin
-          };
-        } catch (error) {
-          console.error("Error during authorization:", error);
-          throw error;
+          if (verificationToken.expiresAt < new Date()) {
+            console.log("Verification token expired");
+            throw new Error("EXPIRED_CODE");
+          }
+
+          // Mark token as used
+          await db
+            .update(verificationTokens)
+            .set({ used: true })
+            .where(eq(verificationTokens.id, verificationToken.id));
         }
+
+        // Step 5: Return user data
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          isAdmin: user.isAdmin
+        };
+      } catch (error) {
+        console.error("Auth error:", error);
+        if (error instanceof Error) {
+          throw error; // This will propagate MFA_REQUIRED, INVALID_CODE, and INVALID_CREDENTIALS
+        }
+        throw new Error("UNKNOWN_ERROR");
       }
-    })
-  ],
+    }
+  })
+];
+
+export const authOptions: NextAuthOptions = {
+  providers,
   pages: {
     signIn: "/auth/login",
     error: "/auth/error"
   },
   callbacks: {
     async jwt({ token, user }) {
-      console.log("JWT callback - user:", user);
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -106,12 +135,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      console.log("Session callback - token:", token);
       if (token) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.name = token.name;
-        session.user.isAdmin = token.isAdmin;
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.isAdmin = token.isAdmin as boolean;
       }
       return session;
     }
@@ -119,6 +147,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt"
   },
-  debug: true,
   secret: process.env.NEXTAUTH_SECRET
 };
+
+export const { auth, signIn, signOut } = NextAuth(authOptions);

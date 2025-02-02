@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@auth/core':
+        specifier: ^0.37.4
+        version: 0.37.4
       '@auth/prisma-adapter':
         specifier: ^2.7.4
         version: 2.7.4(@prisma/client@6.3.0(prisma@6.3.0(typescript@5.7.3))(typescript@5.7.3))
@@ -54,8 +57,8 @@ importers:
         specifier: 14.1.0
         version: 14.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next-auth:
-        specifier: ^4.24.11
-        version: 4.24.11(next@14.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^4.24.5
+        version: 4.24.5(next@14.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       pg:
         specifier: ^8.11.3
         version: 8.13.1
@@ -103,7 +106,7 @@ importers:
         specifier: ^0.20.18
         version: 0.20.18
       postcss:
-        specifier: ^8.4.31
+        specifier: ^8.5.1
         version: 8.5.1
       prisma:
         specifier: ^6.3.0
@@ -1107,8 +1110,8 @@ packages:
   config-chain@1.1.13:
     resolution: {integrity: sha512-qj+f8APARXHrM0hraqXYb2/bOVSV4PvJQlNZ/DVj0QrmNM2q2euizkeuVckQ57J+W0mRH6Hvi+k50M4Jul2VRQ==}
 
-  cookie@0.7.2:
-    resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
+  cookie@0.5.0:
+    resolution: {integrity: sha512-YZ3GUyn/o8gfKJlnlX7g7xq4gyO6OSuhGPKaaGssGB2qgDUS0gPgtTvoyZLTt9Ab6dC4hfc9dV5arkvc/OCmrw==}
     engines: {node: '>= 0.6'}
 
   cookie@1.0.2:
@@ -1651,17 +1654,14 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  next-auth@4.24.11:
-    resolution: {integrity: sha512-pCFXzIDQX7xmHFs4KVH4luCjaCbuPRtZ9oBUjUhOk84mZ9WVPf94n87TxYI4rSRf9HmfHEF8Yep3JrYDVOo3Cw==}
+  next-auth@4.24.5:
+    resolution: {integrity: sha512-3RafV3XbfIKk6rF6GlLE4/KxjTcuMCifqrmD+98ejFq73SRoj2rmzoca8u764977lH/Q7jo6Xu6yM+Re1Mz/Og==}
     peerDependencies:
-      '@auth/core': 0.34.2
-      next: ^12.2.5 || ^13 || ^14 || ^15
+      next: ^12.2.5 || ^13 || ^14
       nodemailer: ^6.6.5
-      react: ^17.0.2 || ^18 || ^19
-      react-dom: ^17.0.2 || ^18 || ^19
+      react: ^17.0.2 || ^18
+      react-dom: ^17.0.2 || ^18
     peerDependenciesMeta:
-      '@auth/core':
-        optional: true
       nodemailer:
         optional: true
 
@@ -2974,7 +2974,7 @@ snapshots:
       ini: 1.3.8
       proto-list: 1.2.4
 
-  cookie@0.7.2: {}
+  cookie@0.5.0: {}
 
   cookie@1.0.2: {}
 
@@ -3527,11 +3527,11 @@ snapshots:
 
   nanoid@3.3.8: {}
 
-  next-auth@4.24.11(next@14.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next-auth@4.24.5(next@14.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@babel/runtime': 7.26.7
       '@panva/hkdf': 1.2.1
-      cookie: 0.7.2
+      cookie: 0.5.0
       jose: 4.15.9
       next: 14.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       oauth: 0.9.15
