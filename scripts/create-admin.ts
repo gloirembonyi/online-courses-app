@@ -1,4 +1,3 @@
-import { dbClient } from '../src/lib/db/client';
 import { hash } from 'bcryptjs';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
@@ -13,7 +12,7 @@ async function createAdmin() {
   const name = 'Admin User';
 
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon<boolean, boolean>(process.env.DATABASE_URL!);
     const db = drizzle(sql);
 
     const hashedPassword = await hash(password, 12);
@@ -21,9 +20,10 @@ async function createAdmin() {
     const [admin] = await db.insert(users)
       .values({
         email,
-        password: hashedPassword,
+        hashedPassword,
         name,
         isAdmin: true,
+        mfaEnabled: false,
       })
       .returning();
 

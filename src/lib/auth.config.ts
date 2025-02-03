@@ -1,37 +1,50 @@
-import type { Session, User } from "next-auth";
-import type { JWT } from "next-auth/jwt";
-import Credentials from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
-import { dbClient } from "./db/client";
+import { type AuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import { type DefaultSession } from "@auth/core/types";
 
 declare module "next-auth" {
-  interface User {
-    id: string;
-    email: string;
-    name?: string | null;
-    isAdmin: boolean;
-  }
-  
   interface Session {
-    user: User;
+    user: {
+      id: string;
+      email: string;
+      name?: string | null;
+      isAdmin: boolean;
+    }
   }
 }
 
-const config = {
+export const authConfig: AuthOptions = {
   providers: [
-    Credentials({
+    CredentialsProvider({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
 
-        const user = await dbClient.getUserByEmail(credentials.email);
-        if (!user || !user.hashedPassword) return null;
+        const user = await db.query.users.findFirst({
+          where: eq(users.email, credentials.email),
+        });
 
-        const isPasswordValid = await compare(credentials.password, user.hashedPassword);
-        if (!isPasswordValid) return null;
+        if (!user || !user.hashedPassword) {
+          return null;
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.hashedPassword
+        );
+
+        if (!isPasswordValid) {
+          return null;
+        }
 
         return {
           id: user.id,
@@ -43,16 +56,20 @@ const config = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: { token: JWT, user: User | null }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
         token.isAdmin = user.isAdmin;
       }
       return token;
     },
-    async session({ session, token }: { session: Session, token: JWT }) {
-      if (session.user) {
+    async session({ session, token }) {
+      if (token) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
         session.user.isAdmin = token.isAdmin as boolean;
       }
       return session;
@@ -62,6 +79,8 @@ const config = {
     signIn: "/auth/login",
     error: "/auth/error",
   },
-} as const;
-
-export const authConfig = config; 
+  session: {
+    strategy: "jwt",
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+} satisfies AuthOptions; 
