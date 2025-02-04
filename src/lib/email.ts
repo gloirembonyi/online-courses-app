@@ -6,7 +6,7 @@ export async function sendVerificationEmail(email: string, token: string) {
   try {
     console.log(`Sending verification email to ${email}`);
     const result = await resend.emails.send({
-      from: 'Course Platform <noreply@courseplatform.com>',
+      from: 'Course Platform <onboarding@resend.dev>',
       to: email,
       subject: 'Your verification code',
       html: `
@@ -21,10 +21,16 @@ export async function sendVerificationEmail(email: string, token: string) {
         </div>
       `,
     });
+
+    if (result.error) {
+      console.error('Error sending verification email:', result.error);
+      throw new Error(result.error.message || 'Failed to send verification email');
+    }
+
     console.log('Verification email sent successfully:', result);
     return result;
   } catch (error) {
     console.error('Error sending verification email:', error);
-    throw new Error('Failed to send verification email');
+    throw error;
   }
 } 

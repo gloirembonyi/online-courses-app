@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/next-auth';
 import { dbClient } from '@/lib/db/client';
 
 export async function GET() {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       description,
       price,
       imageUrl: thumbnailUrl,
-      authorId: session.user.id,
+      authorId: session.user.id!,
     });
 
     return NextResponse.json(course);

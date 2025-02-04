@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { NextAuthProvider } from "@/components/providers/next-auth-provider";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth.config";
+import { auth } from "@/lib/next-auth";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Course Platform",
-  description: "Learn and grow with our courses",
+  title: "Course App",
+  description: "A modern course management application",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 type RootLayoutProps = {
@@ -23,7 +25,7 @@ export default async function RootLayout({
   auth: authEnabled = true,
   dashboard = false,
 }: RootLayoutProps) {
-  const session = await getServerSession(authConfig);
+  const session = await auth();
 
   return (
     <html lang="en">

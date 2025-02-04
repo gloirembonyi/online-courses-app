@@ -1,14 +1,13 @@
-import React from "react";
 import { CourseCard } from "@/components/shared/CourseCard";
 import { dbClient } from "@/lib/db/client";
 import type { Course } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth.config";
+import { auth } from "@/lib/next-auth";
+import { CategoryFilters } from "@/components/shared/CategoryFilters";
 
 export default async function Home() {
-  const session = await getServerSession(authConfig);
+  const session = await auth();
   let courses: Course[] = [];
   try {
     courses = await dbClient.getCourses();
@@ -89,18 +88,7 @@ export default async function Home() {
       </section>
 
       {/* Category Filters */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="flex flex-wrap gap-4 justify-center mb-8">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              className="px-6 py-2 rounded-full bg-white text-gray-700 border border-gray-200 hover:border-blue-400 hover:text-blue-600 transition-colors"
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
-      </section>
+      <CategoryFilters categories={categories} />
 
       {/* Enhanced Courses Grid */}
       <section className="container mx-auto px-4 py-16">
@@ -128,9 +116,6 @@ export default async function Home() {
             <p className="text-xl text-gray-600">
               No courses found. Please check back later!
             </p>
-            <button className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">
-              Refresh Courses
-            </button>
           </div>
         )}
       </section>

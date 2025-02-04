@@ -1,4 +1,4 @@
-import { NextAuthOptions } from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { users, verificationTokens } from "@/lib/db/schema";
@@ -6,9 +6,15 @@ import { eq, and, desc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "./email";
 import { add } from "date-fns";
-import NextAuth from "next-auth";
 
-export const authOptions: NextAuthOptions = {
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  isAdmin: boolean;
+}
+
+export const authOptions: NextAuthConfig = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -17,33 +23,32 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
         verificationCode: { label: "Verification Code", type: "text" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         try {
-          // Step 1: Validate basic credentials
           if (!credentials?.email || !credentials?.password) {
             throw new Error("INVALID_CREDENTIALS");
           }
 
-          // Step 2: Find user
-          const [user] = await db.select().from(users).where(eq(users.email, credentials.email));
+          const [user] = await db.select().from(users).where(eq(users.email, credentials.email as string));
+          
           if (!user || !user.hashedPassword) {
             throw new Error("INVALID_CREDENTIALS");
           }
 
-          // Step 3: Validate password
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.hashedPassword);
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password as string,
+            user.hashedPassword
+          );
+
           if (!isPasswordValid) {
             throw new Error("INVALID_CREDENTIALS");
           }
 
-          // Step 4: Handle MFA
           if (user.mfaEnabled) {
-            // If this is the initial login attempt (no verification code provided)
-            if (!credentials.verificationCode || credentials.verificationCode === "undefined") {
+            if (!credentials.verificationCode) {
               const token = Math.floor(100000 + Math.random() * 900000).toString();
               const expiresAt = add(new Date(), { minutes: 10 });
 
-              // Invalidate old tokens
               await db
                 .update(verificationTokens)
                 .set({ used: true })
@@ -54,64 +59,53 @@ export const authOptions: NextAuthOptions = {
                   )
                 );
 
-              // Create new token
               await db.insert(verificationTokens).values({
                 userId: user.id,
                 token,
                 expiresAt,
               });
 
-              console.log("Sending verification email to:", user.email);
               await sendVerificationEmail(user.email, token);
               throw new Error("MFA_REQUIRED");
             }
 
-            console.log("Verifying code:", credentials.verificationCode, "for user:", user.email);
-
-            // Verify the code
             const [verificationToken] = await db
               .select()
               .from(verificationTokens)
               .where(
                 and(
                   eq(verificationTokens.userId, user.id),
-                  eq(verificationTokens.token, credentials.verificationCode),
+                  eq(verificationTokens.token, credentials.verificationCode as string),
                   eq(verificationTokens.used, false)
                 )
               )
               .orderBy(desc(verificationTokens.createdAt))
               .limit(1);
 
-            console.log("Found verification token:", verificationToken);
-
             if (!verificationToken) {
-              console.log("No valid verification token found");
               throw new Error("INVALID_CODE");
             }
 
             if (verificationToken.expiresAt < new Date()) {
-              console.log("Verification token expired");
               throw new Error("EXPIRED_CODE");
             }
 
-            // Mark token as used
             await db
               .update(verificationTokens)
               .set({ used: true })
               .where(eq(verificationTokens.id, verificationToken.id));
           }
 
-          // Step 5: Return user data
           return {
             id: user.id,
             email: user.email,
-            name: user.name,
-            isAdmin: user.isAdmin
+            name: user.name ?? "",
+            isAdmin: user.isAdmin ?? false
           };
         } catch (error) {
           console.error("Auth error:", error);
           if (error instanceof Error) {
-            throw error; // This will propagate MFA_REQUIRED, INVALID_CODE, and INVALID_CREDENTIALS
+            throw error;
           }
           throw new Error("UNKNOWN_ERROR");
         }
@@ -133,10 +127,10 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
-        session.user.name = token.name as string;
+        session.user.name = (token.name as string) ?? "";
         session.user.isAdmin = token.isAdmin as boolean;
       }
       return session;
@@ -147,5 +141,3 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET
 };
-
-export const { auth, signIn, signOut } = NextAuth(authOptions);
