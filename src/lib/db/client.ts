@@ -38,20 +38,32 @@ export const dbClient = {
     title: string;
     description: string;
     imageUrl: string;
+    videoUrl: string;
     price: number;
     authorId: string;
   }) {
-    const [course] = await db.insert(courses).values(data).returning();
+    const [course] = await db.insert(courses).values({
+      ...data,
+      price: data.price.toString()
+    }).returning();
     return course;
   },
 
-  async getCourses() {
-    return await db.select().from(courses);
+  async getCourses(): Promise<Course[]> {
+    const courseResults = await db.select().from(courses);
+    return courseResults.map(course => ({
+      ...course,
+      price: Number(course.price)
+    })) as Course[];
   },
 
   async getCourseById(id: string) {
     const [course] = await db.select().from(courses).where(eq(courses.id, id));
-    return course;
+    if (!course) return null;
+    return {
+      ...course,
+      price: Number(course.price)
+    };
   },
 
   // Lesson functions
@@ -101,7 +113,10 @@ export const dbClient = {
     .innerJoin(courses, eq(enrollments.courseId, courses.id))
     .where(eq(enrollments.userId, userId));
     
-    return enrolledCourses.map(({ course }) => course);
+    return enrolledCourses.map(({ course }) => ({
+      ...course,
+      price: Number(course.price)
+    }));
   },
 
   // Subscription operations

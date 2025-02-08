@@ -1,27 +1,34 @@
-import Link from "next/link";
+import { Metadata } from "next";
 
-export default function AuthError({
+export const metadata: Metadata = {
+  title: "Authentication Error",
+  description: "An error occurred during authentication",
+};
+
+export default function AuthErrorPage({
   searchParams,
 }: {
   searchParams: { error?: string };
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 py-8 px-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Authentication Error
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {searchParams.error || "An error occurred during authentication"}
+          </h1>
+          <p className="text-gray-600">
+            {searchParams.error === "CredentialsSignin"
+              ? "Invalid email or password. Please try again."
+              : "An error occurred during authentication. Please try again."}
           </p>
-          <div className="mt-4 text-center">
-            <Link
+          <div className="mt-6">
+            <a
               href="/auth/login"
-              className="text-blue-600 hover:text-blue-500"
+              className="text-blue-600 hover:text-blue-500 font-medium"
             >
-              Try again
-            </Link>
+              Back to Login
+            </a>
           </div>
         </div>
       </div>
