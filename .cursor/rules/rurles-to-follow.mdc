@@ -1,0 +1,9 @@
+---
+description: this platform application that has that difference courses lessons it have admin part where admin can be able to upload courses video and other analytics
+globs: 
+---
+
+# rule to make this be more functional
+
+- remember alweys to put sensetive imformation in .env file
+- I using clerk for admin

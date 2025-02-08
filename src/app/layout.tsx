@@ -1,36 +1,38 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NextAuthProvider } from "@/components/providers/next-auth-provider";
-import { auth } from "@/lib/next-auth";
+import { Header } from "@/components/shared/Header";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Course App",
-  description: "A modern course management application",
+  title: "Course Platform - Learn and Grow",
+  description: "A modern platform for online learning and skill development",
   icons: {
     icon: "/favicon.ico",
   },
 };
 
-type RootLayoutProps = {
+interface RootLayoutProps {
   children: React.ReactNode;
-  auth: boolean;
-  dashboard: boolean;
-};
+}
 
-export default async function RootLayout({
-  children,
-  auth: authEnabled = true,
-  dashboard = false,
-}: RootLayoutProps) {
-  const session = await auth();
-
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <NextAuthProvider>{children}</NextAuthProvider>
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body className={`${inter.className} h-full antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="min-h-full flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
+            <Header />
+            <main className="flex-grow">{children}</main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
